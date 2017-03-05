@@ -2,16 +2,52 @@ module Main exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (on, keyCode)
+import Html.Events exposing (on, keyCode, onInput)
 
 import Json.Decode as Json
 
-mockTodo : Todo
-mockTodo =
-    { title = "A mock todo..."
+type alias Todo =
+    { title : String
+    , completed : Bool
+    , editing : Bool
+    }
+
+type FilterState
+    = All
+    | Active
+    | Completed
+
+type alias Model =
+    { todos : List Todo
+    , todo : Todo
+    , filter : FilterState
+    }
+
+type Msg
+    = Add
+    | Complete Todo
+    | Delete Todo
+    | UpdateField String
+    | Filter FilterState
+
+newTodo : Todo
+newTodo =
+    { title = ""
     , completed = False
     , editing = False
     }
+
+initialModel : Model
+initialModel =
+    {todos = [ { title = "The fisrt todo"
+               , completed = False
+               , editing = False
+               }
+             ]
+    , todo = newTodo
+    , filter = All
+    }
+
 
 onEnter : Msg -> Attribute Msg
 onEnter msg =
@@ -25,49 +61,24 @@ onEnter msg =
         on "keydown" (keyCode |> Json.andThen isEnter)
 
 
-type alias Todo =
-    { title : String
-    , completed : Bool
-    , editing : Bool
-    }
-
-type FilterState = All | Active | Completed
-
-type alias Model =
-    { todos : List Todo
-    , todo : Todo
-    , filter : FilterState
-    }
-
-type Msg
-    = Add Todo
-    | Complete Todo
-    | Delete Todo
-    | Filter FilterState
-
-initialModel : Model
-initialModel =
-    {todos = [ { title = "The fisrt todo"
-               , completed = False
-               , editing = False
-               }
-             ]
-    , todo = { title = ""
-             , completed = False
-             , editing = False
-             }
-    , filter = All
-    }
-
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        Add todo ->
-            { model | todos = todo :: model.todos}
+        Add ->
+            { model
+                | todos = model.todo :: model.todos
+                , todo = newTodo
+            }
         Complete todo ->
             model
         Delete todo ->
             model
+        UpdateField str ->
+            let
+                todo = model.todo
+                updatedTodo = { todo | title = str }
+            in
+                {model | todo = updatedTodo}
         Filter filterState ->
             model
 
@@ -94,8 +105,10 @@ view model =
                   , input
                         [ class "new-todo"
                         , placeholder "What needs to be done?"
+                        , value model.todo.title
                         , autofocus True
-                        , onEnter (Add mockTodo)
+                        , onEnter Add
+                        , onInput UpdateField
                         ]
                         []
                   ]
